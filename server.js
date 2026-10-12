@@ -53,15 +53,29 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('navigate', async (url) => {
+socket.on('navigate', async (url) => {
         try {
             const pages = await browser.pages();
             page = pages[pages.length - 1];
-            if (page) {
-                let targetUrl = url;
+            if (page && url) {
+                let targetUrl = url.trim();
+                
+                // 빈 값이거나 너무 짧으면 무시
+                if (!targetUrl) return;
+
+                // http나 https가 없다면 붙여주기
                 if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
                     targetUrl = 'https://' + targetUrl;
                 }
+
+                // URL 유효성 검사 (잘못된 형식일 경우 에러 방지)
+                try {
+                    new URL(targetUrl);
+                } catch (e) {
+                    console.error('잘못된 URL 형식:', targetUrl);
+                    return;
+                }
+
                 await page.goto(targetUrl, { waitUntil: 'networkidle2' });
                 broadcastScreenshot();
             }
