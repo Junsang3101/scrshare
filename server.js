@@ -1,46 +1,35 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
+const socket = io();
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+const browserScreen = document.getElementById('browserScreen');
 
-// public 폴더의 정적 파일(HTML 등)을 서비스합니다.
-app.use(express.static('public'));
-
-io.on('connection', (socket) => {
-    console.log(`사용자 접속됨: ${socket.id}`);
-
-    // 사용자가 특정 방(Room)에 입장할 때
-    socket.on('join-room', (room) => {
-        socket.join(room);
-        console.log(`사용자(${socket.id})가 [방: ${room}] 에 입장했습니다.`);
-        
-        // 방에 먼저 와 있는 다른 사용자에게 새 사람이 들어왔음을 알립니다.
-        socket.to(room).emit('peer-joined', socket.id);
-    });
-
-    // WebRTC Offer 중계
-    socket.on('offer', ({ room, offer }) => {
-        socket.to(room).emit('offer', offer);
-    });
-
-    // WebRTC Answer 중계
-    socket.on('answer', ({ room, answer }) => {
-        socket.to(room).emit('answer', answer);
-    });
-
-    // ICE 후보(Candidate) 중계
-    socket.on('ice-candidate', ({ room, candidate }) => {
-        socket.to(room).emit('ice-candidate', candidate);
-    });
-
-    socket.on('disconnect', () => {
-        console.log(`사용자 연결 해제됨: ${socket.id}`);
-    });
+// 1. 서버로부터 실시간 화면(스크린샷) 받기
+socket.on('screen-update', (base64Image) => {
+    browserScreen.src = `data:image/png;base64,${base64Image}`;
 });
 
-server.listen(3000, () => {
-    console.log('시그널링 서버 실행 중: http://localhost:3000');
+// 2. 브라우저 화면을 클릭했을 때 좌표를 서버로 전송
+browserScreen.addEventListener('click', (e) => {
+    const rect = e.target.getBoundingClientRect();
+    
+    // 실제 이미지 내부에서의 상대 좌표 계산 (서버 브라우저 해상도 1280x720 기준 매칭)
+    const scaleX = 1280 / rect.width;
+    const scaleY = 720 / rect.height;
+    
+    const x = Math.floor((e.clientX - rect.left) * scaleX);
+    const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+    socket.emit('mouse-click', { x, y });
 });
+
+// 3. 키보드 입력 전송
+window.addEventListener('keydown', (e) => {
+    socket.emit('key-press', { key: e.key });
+});
+
+// 4. URL 이동 함수
+function changeUrl() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (url) {
+        socket.emit('navigate', url);
+    }
+}

@@ -2,53 +2,27 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>자동 연결 WebRTC 화면 공유 & 제어</title>
-    <!-- CSS 파일 링크 -->
+    <title>공동 웹 브라우저 제어</title>
     <link rel="stylesheet" href="/css/style.css">
-    <!-- Socket.io 클라이언트 라이브러리 자동 로드 -->
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
-    <h2>자동 연결 WebRTC P2P 화면 공유 + 권한 제어</h2>
+    <h2>공유 웹 브라우저 (실시간 제어)</h2>
 
-    <!-- 방 참여 설정 영역 -->
     <div class="setup-box">
-        <input type="text" id="roomInput" placeholder="방 번호 입력 (예: room123)">
-        <button onclick="joinRoom()">방 입장 및 연결 준비</button>
-        <span id="statusText" style="margin-left: 15px; font-weight: bold; color: gray;">대기 중...</span>
+        <input type="text" id="urlInput" placeholder="이동할 URL 입력 (예: https://naver.com)" style="width: 300px;">
+        <button onclick="changeUrl()">이동</button>
     </div>
     
-<div class="container">
-    <!-- 내 화면 영역 (송출) -->
-    <div class="box" id="localBox">
-        <h3>내 화면 (송출)</h3>
-        <div id="localVideoContainer">
-            <video id="localVideo" autoplay muted playsinline></video>
-            <div id="visitorMouseOverlay">
-                <div id="remoteCursorOnLocal" class="visitor-pointer"></div>
-            </div>
-        </div>
-        <div style="margin-top: 10px;">
-            <button onclick="startShare()">화면 공유 시작</button>
-        </div>
-        <div class="toggle-box">
-            <label>
-                <input type="checkbox" id="controlToggle" onchange="toggleControl(this)"> 
-                상대방의 마우스 시각화 (ON/OFF)
-            </label>
+    <div class="container">
+        <div class="box" style="position: relative;">
+            <h3>브라우저 화면</h3>
+            <!-- 서버 브라우저 화면이 이미지로 갱신됨 -->
+            <img id="browserScreen" style="width: 100%; cursor: pointer; border: 1px solid #ccc;" alt="브라우저 화면 로딩중...">
         </div>
     </div>
 
-    <!-- 상대방 화면 영역 (수신) -->
-    <div class="box" id="remoteBox">
-        <h3>상대방 화면 (수신)</h3>
-        <video id="remoteVideo" autoplay playsinline></video>
-        <div id="remoteCursor"></div>
-    </div>
-</div>
-
-    <!-- JS 파일 링크 -->
     <script src="/js/main.js"></script>
 </body>
 </html>
