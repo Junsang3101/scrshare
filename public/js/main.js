@@ -26,6 +26,9 @@ async function startShare() {
         localStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
         document.getElementById('localVideo').srcObject = localStream;
 
+        // ★ 추가: 나는 송출자이므로, 불필요한 '상대방 화면(수신)' 박스를 숨깁니다.
+        document.getElementById('remoteBox').style.display = 'none';
+
         createPeerConnection();
 
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
@@ -44,12 +47,18 @@ async function startShare() {
 }
 
 // 3. WebRTC 피어 커넥션 객체 생성 공통 함수
+// 3. WebRTC 피어 커넥션 객체 생성 공통 함수
 function createPeerConnection() {
     if (pc) return;
     pc = new RTCPeerConnection(rtcConfig);
 
+    // 상대방의 스트림을 받을 때 (수신자가 실행)
     pc.ontrack = (event) => {
         document.getElementById('remoteVideo').srcObject = event.streams[0];
+        
+        // ★ 추가: 나는 수신자이므로, 불필요한 '내 화면(송출)' 박스를 숨깁니다.
+        document.getElementById('localBox').style.display = 'none';
+
         document.getElementById('statusText').innerText = 'P2P 연결 성공! 화면 공유 중';
         document.getElementById('statusText').style.color = 'green';
     };

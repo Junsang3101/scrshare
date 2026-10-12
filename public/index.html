@@ -19,36 +19,34 @@
         <span id="statusText" style="margin-left: 15px; font-weight: bold; color: gray;">대기 중...</span>
     </div>
     
-    <div class="container">
-        <!-- 내 화면 영역 (송출 + 들어온 사용자의 마우스 시각화 오버레이 포함) -->
-        <div class="box">
-            <h3>내 화면 (송출)</h3>
-            <div id="localVideoContainer">
-                <video id="localVideo" autoplay muted playsinline></video>
-                <!-- 들어온 사용자 마우스를 그릴 오버레이 -->
-                <div id="visitorMouseOverlay">
-                    <div id="remoteCursorOnLocal" class="visitor-pointer"></div>
-                </div>
-            </div>
-            <div style="margin-top: 10px;">
-                <button onclick="startShare()">화면 공유 시작</button>
-            </div>
-            <div class="toggle-box">
-                <label>
-                    <input type="checkbox" id="controlToggle" onchange="toggleControl(this)"> 
-                    상대방의 마우스 시각화 (ON/OFF)
-                </label>
+<div class="container">
+    <!-- 내 화면 영역 (송출) -->
+    <div class="box" id="localBox">
+        <h3>내 화면 (송출)</h3>
+        <div id="localVideoContainer">
+            <video id="localVideo" autoplay muted playsinline></video>
+            <div id="visitorMouseOverlay">
+                <div id="remoteCursorOnLocal" class="visitor-pointer"></div>
             </div>
         </div>
-
-        <!-- 상대방 화면 영역 (수신) -->
-        <div class="box" id="remoteContainer">
-            <h3>상대방 화면 (수신)</h3>
-            <video id="remoteVideo" autoplay playsinline></video>
-            <!-- 상대방 화면 위에 표시될 가상 마우스 포인터 -->
-            <div id="remoteCursor"></div>
+        <div style="margin-top: 10px;">
+            <button onclick="startShare()">화면 공유 시작</button>
+        </div>
+        <div class="toggle-box">
+            <label>
+                <input type="checkbox" id="controlToggle" onchange="toggleControl(this)"> 
+                상대방의 마우스 시각화 (ON/OFF)
+            </label>
         </div>
     </div>
+
+    <!-- 상대방 화면 영역 (수신) -->
+    <div class="box" id="remoteBox">
+        <h3>상대방 화면 (수신)</h3>
+        <video id="remoteVideo" autoplay playsinline></video>
+        <div id="remoteCursor"></div>
+    </div>
+</div>
 
     <!-- JS 파일 링크 -->
     <script src="/js/main.js"></script>
