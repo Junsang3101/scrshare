@@ -2,27 +2,40 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>공동 웹 브라우저 제어</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <script src="/socket.io/socket.io.js"></script>
+    <title>멀티룸 클라우드 브라우저</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; margin-top: 20px; background: #f0f2f5; }
+        #lobby { margin-bottom: 20px; }
+        #browser-container { display: none; }
+        #browserScreen { border: 2px solid #ccc; max-width: 100%; cursor: crosshair; background: #000; }
+        .controls { margin: 10px 0; }
+        input, button { padding: 8px 12px; font-size: 16px; }
+    </style>
 </head>
 <body>
 
-    <h2>공유 웹 브라우저 (실시간 제어)</h2>
-
-    <div class="setup-box">
-        <input type="text" id="urlInput" placeholder="이동할 URL 입력 (예: https://naver.com)" style="width: 300px;">
-        <button onclick="changeUrl()">이동</button>
+    <!-- 로비 화면 (방 선택) -->
+    <div id="lobby">
+        <h2>🚀 클라우드 브라우저 멀티룸</h2>
+        <p>입장할 방 이름을 입력하세요.</p>
+        <input type="text" id="roomInput" placeholder="예: room-A, team-1">
+        <button onclick="joinRoom()">방 입장하기</button>
     </div>
-    
-    <div class="container">
-        <div class="box" style="position: relative;">
-            <h3>브라우저 화면</h3>
-            <!-- 서버 브라우저 화면이 이미지로 갱신됨 -->
-            <img id="browserScreen" style="width: 100%; cursor: pointer; border: 1px solid #ccc;" alt="브라우저 화면 로딩중...">
+
+    <!-- 브라우저 공유 화면 -->
+    <div id="browser-container">
+        <h3 id="currentRoomTitle"></h3>
+        <div class="controls">
+            <input type="text" id="urlInput" placeholder="https://www.google.com" style="width: 400px;">
+            <button onclick="changeUrl()">이동</button>
+            <button onclick="leaveRoom()" style="background: #ff4d4d; color: white;">나가기</button>
+        </div>
+        <div>
+            <img id="browserScreen" alt="클라우드 브라우저 화면">
         </div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script src="/js/main.js"></script>
 </body>
 </html>

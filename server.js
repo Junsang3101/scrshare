@@ -9,113 +9,140 @@ const io = new Server(server);
 
 app.use(express.static('public'));
 
-let browser;
-let page;
-let client;
-
-async function initBrowser() {
-    browser = await puppeteer.launch({ 
-        headless: true,
-        defaultViewport: { width: 1280, height: 720 }
-    });
-    const pages = await browser.pages();
-    page = pages[0];
-    await page.goto('https://www.google.com');
-    console.log('Puppeteer 브라우저가 서버 내에서 실행되었습니다.');
-
-    // CDP 세션 연결 및 Screencast 시작
-    await startScreencast();
-}
-
-async function startScreencast() {
-    if (!page) return;
-    try {
-        client = await page.createCDPSession();
-        
-        // 크롬 내장 Screencast 기능 활성화 (변화가 생길 때만 프레임 전송)
-        await client.send('Page.startScreencast', {
-            format: 'jpeg',
-            quality: 80,
-            maxWidth: 1280,
-            maxHeight: 720,
-            everyNthFrame: 1
-        });
-
-        client.on('Page.screencastFrame', async (frame) => {
-            try {
-                // 클라이언트로 실시간 프레임 전송
-                io.emit('screen-update', frame.data);
-                
-                // 프레임을 정상적으로 받았다고 크롬에 확인(Ack) 신호 전송 필수
-                await client.send('Page.screencastFrameAck', { sessionId: frame.sessionId });
-            } catch (err) {
-                // Ack 전송 중 발생할 수 있는 에러 무시
-            }
-        });
-        console.log('크롬 실시간 Screencast 스트리밍 시작됨');
-    } catch (err) {
-        console.error('Screencast 시작 실패:', err.message);
-    }
-}
+// 방별 세션 정보를 저장할 맵
+// 구조: rooms.set(roomId, { browser, page, client, users: Set })
+const rooms = new Map();
 
 io.on('connection', (socket) => {
-    console.log(`사용자 접속됨: ${socket.id}`);
+    console.log(`사용자 연결됨: ${socket.id}`);
 
+    // 1. 방 입장 처리
+    socket.on('join-room', async (roomId) => {
+        if (!roomId) return;
+        
+        socket.roomId = roomId;
+        socket.join(roomId);
+        console.log(`사용자 ${socket.id} 가 [${roomId}] 방에 입장함`);
+
+        // 해당 방의 브라우저가 없으면 새로 생성
+        if (!rooms.has(roomId)) {
+            console.log(`[${roomId}] 방 전용 Puppeteer 브라우저 생성 중...`);
+            const browser = await puppeteer.launch({ 
+                headless: true,
+                defaultViewport: { width: 1280, height: 720 }
+            });
+            const pages = await browser.pages();
+            const page = pages[0];
+            await page.goto('https://www.google.com');
+
+            const client = await page.createCDPSession();
+            await client.send('Page.startScreencast', {
+                format: 'jpeg',
+                quality: 80,
+                maxWidth: 1280,
+                maxHeight: 720,
+                everyNthFrame: 1
+            });
+
+            client.on('Page.screencastFrame', async (frame) => {
+                try {
+                    // 해당 방에만 화면 브로드캐스트
+                    io.to(roomId).emit('screen-update', frame.data);
+                    await client.send('Page.screencastFrameAck', { sessionId: frame.sessionId });
+                } catch (err) {}
+            });
+
+            rooms.set(roomId, { browser, page, client, users: new Set() });
+        }
+
+        // 방 유저 목록에 추가
+        const roomData = rooms.get(roomId);
+        roomData.users.add(socket.id);
+    });
+
+    // 2. 마우스 클릭 처리
     socket.on('mouse-click', async ({ x, y }) => {
+        const roomId = socket.roomId;
+        if (!roomId || !rooms.has(roomId)) return;
+
         try {
-            const pages = await browser.pages();
-            page = pages[pages.length - 1];
-            if (page) {
-                await page.mouse.click(x, y);
+            const { page } = rooms.get(roomId);
+            const pages = await page.browser().pages();
+            const targetPage = pages[pages.length - 1];
+            if (targetPage) {
+                await targetPage.mouse.click(x, y);
             }
         } catch (err) {
-            console.error('마우스 클릭 에러:', err.message);
+            console.error(`[${roomId}] 마우스 클릭 에러:`, err.message);
         }
     });
 
+    // 3. 키보드 입력 처리
     socket.on('key-press', async ({ key }) => {
+        const roomId = socket.roomId;
+        if (!roomId || !rooms.has(roomId)) return;
+
         try {
-            const pages = await browser.pages();
-            page = pages[pages.length - 1];
-            if (page) {
-                await page.keyboard.press(key);
+            const { page } = rooms.get(roomId);
+            const pages = await page.browser().pages();
+            const targetPage = pages[pages.length - 1];
+            if (targetPage) {
+                await targetPage.keyboard.press(key);
             }
         } catch (err) {
-            console.error('키 입력 에러:', err.message);
+            console.error(`[${roomId}] 키 입력 에러:`, err.message);
         }
     });
 
+    // 4. URL 이동 처리
     socket.on('navigate', async (url) => {
-        try {
-            const pages = await browser.pages();
-            page = pages[pages.length - 1];
-            if (page && url) {
-                let targetUrl = url.trim();
-                if (!targetUrl) return;
-                if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-                    targetUrl = 'https://' + targetUrl;
-                }
-                try { new URL(targetUrl); } catch (e) { return; }
+        const roomId = socket.roomId;
+        if (!roomId || !rooms.has(roomId)) return;
 
-                await page.goto(targetUrl, { waitUntil: 'networkidle2' });
-                
-                // 페이지가 바뀌면 세션과 스크린캐스트를 새 페이지에 재연결
-                if (client) {
-                    await client.detach().catch(() => {});
-                }
-                await startScreencast();
+        try {
+            let targetUrl = url.trim();
+            if (!targetUrl) return;
+            if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                targetUrl = 'https://' + targetUrl;
+            }
+            try { new URL(targetUrl); } catch (e) { return; }
+
+            const roomData = rooms.get(roomId);
+            const pages = await roomData.browser.pages();
+            const targetPage = pages[pages.length - 1];
+            
+            if (targetPage) {
+                await targetPage.goto(targetUrl, { waitUntil: 'networkidle2' });
             }
         } catch (err) {
-            console.error('URL 이동 에러:', err.message);
+            console.error(`[${roomId}] URL 이동 에러:`, err.message);
         }
     });
 
-    socket.on('disconnect', () => {
-        console.log(`사용자 연결 해제됨: ${socket.id}`);
-    });
+    // 5. 퇴장 및 방 청소(Cleanup) 처리
+    const handleDisconnect = async () => {
+        const roomId = socket.roomId;
+        if (!roomId || !rooms.has(roomId)) return;
+
+        const roomData = rooms.get(roomId);
+        roomData.users.delete(socket.id);
+        console.log(`사용자 ${socket.id} 가 [${roomId}] 방에서 나감 (남은 인원: ${roomData.users.size})`);
+
+        // 방에 아무도 없으면 브라우저 프로세스 완전 종료 (자원 회수)
+        if (roomData.users.size === 0) {
+            console.log(`[${roomId}] 방에 남은 사람이 없어 브라우저를 종료합니다.`);
+            try {
+                await roomData.client.detach().catch(() => {});
+                await roomData.browser.close();
+            } catch (e) {}
+            rooms.delete(roomId);
+        }
+    };
+
+    socket.on('leave-room', handleDisconnect);
+    socket.on('disconnect', handleDisconnect);
 });
 
-server.listen(3000, async () => {
-    console.log('클라우드 브라우저 서버 실행 중: http://localhost:3000');
-    await initBrowser();
+server.listen(3000, () => {
+    console.log('멀티룸 클라우드 브라우저 서버 실행 중: http://localhost:3000');
 });
