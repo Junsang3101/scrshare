@@ -55,3 +55,42 @@ button { padding: 8px 15px; cursor: pointer; }
     box-shadow: 0 0 5px rgba(0,0,0,0.5);
     z-index: 11;
 }
+
+/* 송출자 화면 컨테이너 및 오버레이 스타일 */
+#localVideoContainer {
+    position: relative; /* 오버레이의 기준점 */
+    width: 100%;
+    overflow: hidden; /* 영역 밖 포인터 숨김 */
+}
+
+/* 실제 비디오 */
+#localVideo {
+    width: 100%;
+    background: #000;
+    border-radius: 4px;
+}
+
+/* 들어온 사용자 마우스를 그릴 오버레이 레이어 */
+#visitorMouseOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* 오버레이가 마우스 이벤트를 뺏지 않도록 */
+    z-index: 10; /* 비디오 위에 */
+}
+
+/* 수신자 마우스 포인터 스타일 */
+.visitor-pointer {
+    position: absolute;
+    display: none; /* 기본은 숨김 */
+    width: 16px;
+    height: 16px;
+    background: rgba(255, 0, 0, 0.7); /* 빨간색 투명 점 */
+    border: 2px solid white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%); /* 중심점 맞추기 */
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    z-index: 11; /* 오버레이보다 위 */
+}

@@ -105,24 +105,22 @@ function setupDataChannel() {
     dataChannel.onmessage = (event) => {
         const data = JSON.parse(event.data);
         
+        // --- 송출자가 수신자의 마우스 좌표를 받았을 때 처리 ---
         if (data.type === 'mouseMove') {
-            const toggle = document.getElementById('controlToggle');
-            
-            // 토글이 켜져 있으면 내 화면(송출 화면)에 상대방 마우스 그리기
-            if (toggle && toggle.checked) {
-                const cursorOnLocal = document.getElementById('remoteCursorOnLocal');
-                cursorOnLocal.style.display = 'block';
-                cursorOnLocal.style.left = data.x + 'px';
-                cursorOnLocal.style.top = data.y + 'px';
-            }
-            
-            // 수신자 화면에 그리는 기존 로직
+            const cursor = document.getElementById('remoteCursorOnLocal');
+
+            // 1. 받은 좌표에 포인터를 위치시키고 보이기
+            cursor.style.display = 'block';
+            cursor.style.left = data.x + 'px';
+            cursor.style.top = data.y + 'px';
+        }
+        // --- (이전 수신자 화면 좌표 처리는 그대로 둡니다) ---
+        else if (data.type === 'mouseMove' && !isControlAllowed) {
+            // 이 부분은 수신자 화면에 가상 커서 그리는 기존 로직
             const cursor = document.getElementById('remoteCursor');
-            if (cursor) {
-                cursor.style.display = 'block';
-                cursor.style.left = data.x + 'px';
-                cursor.style.top = data.y + 'px';
-            }
+            cursor.style.display = 'block';
+            cursor.style.left = data.x + 'px';
+            cursor.style.top = data.y + 'px';
         }
     };
 }
