@@ -23,6 +23,10 @@ browserScreen.addEventListener('click', (e) => {
 
 // 3. 키보드 입력 전송
 window.addEventListener('keydown', (e) => {
+    // 한글 입력 중 발생하는 'Process' 키 등 퍼피티어가 알지 못하는 키는 무시합니다.
+    if (e.key === 'Process' || e.keyCode === 229) {
+        return;
+    }
     socket.emit('key-press', { key: e.key });
 });
 
